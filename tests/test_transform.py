@@ -1,4 +1,4 @@
-from pipeline.transform import clean, revenue_by_region
+from pipeline.transform import clean, orders_by_region, revenue_by_region
 
 
 def test_clean_drops_malformed_and_blank_region():
@@ -26,3 +26,12 @@ def test_revenue_by_region_sums_and_sorts():
         {"region": "North", "amount": 2.2},
     ]
     assert revenue_by_region(rows) == {"East": 2.0, "North": 3.3}
+
+
+def test_orders_by_region_counts_and_sorts():
+    rows = [
+        {"region": "North", "amount": 1.1},
+        {"region": "East", "amount": 2},
+        {"region": "North", "amount": 2.2},
+    ]
+    assert orders_by_region(rows) == {"East": 1, "North": 2}
