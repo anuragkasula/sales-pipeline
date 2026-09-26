@@ -1,0 +1,53 @@
+# A merge into dev / uat / main == a deploy to dev / uat / prod.
+name: Deploy
+
+on:
+  push:
+    branches: [dev, uat, main]
+
+# Never run two deploys to the same environment at once; queue instead of cancel.
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TARGET_ENV: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+
+jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    # Ties the job to a GitHub Environment -> env-scoped secrets + approval gates.
+    environment: ${{ github.ref_name == 'main' && 'prod' || github.ref_name }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run pipeline against ${{ env.TARGET_ENV }}
+        env:
+          APP_ENV: ${{ env.TARGET_ENV }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}   # different value per environment
+        run: PYTHONPATH=src python -m pipeline.main
+      - uses: actions/upload-artifact@v4
+        with:
+          name: output-${{ env.TARGET_ENV }}-${{ github.sha }}
+          path: output/
+
+  tag-release:
+    if: github.ref_name == 'main'
+    needs: deploy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tag what just shipped to prod
+        run: |
+          TAG="prod-${{ github.run_number }}"
+          git tag "$TAG" "${{ github.sha }}"
+          git push origin "$TAG"
+          echo "Tagged $TAG" >> "$GITHUB_STEP_SUMMARY"

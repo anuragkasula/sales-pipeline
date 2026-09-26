@@ -1,0 +1,38 @@
+# One-click "open a promotion PR" (dev -> uat, uat -> main).
+name: Promote
+
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: Promotion path
+        type: choice
+        options: [dev-to-uat, uat-to-main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  open-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Open promotion PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          case "${{ inputs.path }}" in
+            dev-to-uat)  FROM=dev; TO=uat ;;
+            uat-to-main) FROM=uat; TO=main ;;
+          esac
+          CHANGES=$(git log --oneline "origin/$TO..origin/$FROM")
+          if [ -z "$CHANGES" ]; then
+            echo "Nothing to promote: $TO already contains $FROM."; exit 0
+          fi
+          gh pr create --base "$TO" --head "$FROM" \
+            --title "Promote $FROM -> $TO" \
+            --body "$(printf 'Commits being promoted:\n\n```\n%s\n```' "$CHANGES")" \
+            || echo "A promotion PR is probably already open."

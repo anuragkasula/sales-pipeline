@@ -1,0 +1,9 @@
+order_id,region,amount
+1,north,120.50
+2,South,80.00
+3, north ,45.25
+4,east,3.00
+5,west,not_a_number
+6,east,210.00
+7,,99.00
+8,south,-15.00
