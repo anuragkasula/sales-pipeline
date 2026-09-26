@@ -3,7 +3,7 @@ import json
 import os
 from pathlib import Path
 
-from pipeline.transform import clean, load_rows, revenue_by_region
+from pipeline.transform import clean, load_rows, orders_by_region, revenue_by_region
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -26,11 +26,14 @@ def run():
     print(f"   DB_PASSWORD      : {secret_status}")
 
     rows = clean(load_rows(ROOT / cfg["input_path"]), cfg["min_amount"])
-    result = revenue_by_region(rows)
+    result = {
+        "revenue_by_region": revenue_by_region(rows),
+        "orders_by_region": orders_by_region(rows),
+    }
 
     out_dir = ROOT / "output" / env
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "revenue_by_region.json").write_text(json.dumps(result, indent=2))
+    (out_dir / "summary.json").write_text(json.dumps(result, indent=2))
     print(json.dumps(result, indent=2))
 
 

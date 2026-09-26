@@ -28,3 +28,12 @@ def revenue_by_region(rows):
     for r in rows:
         totals[r["region"]] += r["amount"]
     return {k: round(v, 2) for k, v in sorted(totals.items())}
+
+
+def orders_by_region(rows):
+    """Count orders per region, sorted by region name."""
+    counts = defaultdict(int)
+    for r in rows:
+        counts[r["region"]] += 1
+    return dict(sorted(counts.items()))
+
